@@ -40,6 +40,8 @@ function parseGameForm(formData: FormData) {
     result,
     score_self: parseScore("score_self"),
     score_opp: parseScore("score_opp"),
+    battle_tactics_self: parseScore("battle_tactics_self"),
+    battle_tactics_opp: parseScore("battle_tactics_opp"),
     event_id: eventId === "" ? null : eventId,
     played_on: playedOn,
     notes: notes === "" ? null : notes,

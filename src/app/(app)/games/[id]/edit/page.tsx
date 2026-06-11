@@ -17,7 +17,7 @@ export default async function EditGamePage({
       supabase
         .from("games")
         .select(
-          "id, player_faction_id, opponent_faction_id, result, score_self, score_opp, event_id, played_on, notes"
+          "id, player_faction_id, opponent_faction_id, result, score_self, score_opp, battle_tactics_self, battle_tactics_opp, event_id, played_on, notes"
         )
         .eq("id", id)
         .maybeSingle(),

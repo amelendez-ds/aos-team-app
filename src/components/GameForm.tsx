@@ -11,6 +11,8 @@ type InitialGame = {
   result: "win" | "loss" | "draw";
   score_self: number | null;
   score_opp: number | null;
+  battle_tactics_self: number | null;
+  battle_tactics_opp: number | null;
   event_id: string | null;
   played_on: string;
   notes: string | null;
@@ -138,6 +140,31 @@ export default function GameForm({
             min={0}
             inputMode="numeric"
             defaultValue={initial?.score_opp ?? ""}
+            className={inputClass}
+          />
+        </label>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1 text-sm text-muted">
+          Battle tactics (you) <span className="text-xs">(optional)</span>
+          <input
+            type="number"
+            name="battle_tactics_self"
+            min={0}
+            inputMode="numeric"
+            defaultValue={initial?.battle_tactics_self ?? ""}
+            className={inputClass}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-muted">
+          Battle tactics (opponent) <span className="text-xs">(optional)</span>
+          <input
+            type="number"
+            name="battle_tactics_opp"
+            min={0}
+            inputMode="numeric"
+            defaultValue={initial?.battle_tactics_opp ?? ""}
             className={inputClass}
           />
         </label>

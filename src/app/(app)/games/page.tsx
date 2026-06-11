@@ -7,6 +7,8 @@ type GameRow = {
   result: "win" | "loss" | "draw";
   score_self: number | null;
   score_opp: number | null;
+  battle_tactics_self: number | null;
+  battle_tactics_opp: number | null;
   played_on: string;
   notes: string | null;
   owner_id: string;
@@ -39,7 +41,8 @@ export default async function MyGamesPage() {
   const { data, error } = await supabase
     .from("games")
     .select(
-      `id, result, score_self, score_opp, played_on, notes, owner_id, last_edited_by,
+      `id, result, score_self, score_opp, battle_tactics_self, battle_tactics_opp,
+       played_on, notes, owner_id, last_edited_by,
        player_faction:factions!games_player_faction_id_fkey(name, color_hex),
        opponent_faction:factions!games_opponent_faction_id_fkey(name, color_hex),
        event:events(name)`
@@ -109,6 +112,13 @@ export default async function MyGamesPage() {
                 {g.score_self !== null && g.score_opp !== null && (
                   <span className="ml-2 text-muted">
                     ({g.score_self}–{g.score_opp})
+                  </span>
+                )}
+                {(g.battle_tactics_self !== null ||
+                  g.battle_tactics_opp !== null) && (
+                  <span className="ml-2 text-sm text-muted">
+                    Tactics {g.battle_tactics_self ?? 0}–
+                    {g.battle_tactics_opp ?? 0}
                   </span>
                 )}
               </p>
