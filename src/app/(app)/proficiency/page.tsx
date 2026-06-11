@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { adjustProficiency } from "@/app/proficiency/actions";
 import FactionDot from "@/components/FactionDot";
+import { getRank, type GrandAlliance } from "@/lib/ranks";
 
 type StatRow = {
   profile_id: string;
@@ -18,7 +19,11 @@ type StatRow = {
   level: number;
 };
 
-type FactionInfo = { name: string; color_hex: string };
+type FactionInfo = {
+  name: string;
+  color_hex: string;
+  grand_alliance: GrandAlliance;
+};
 
 function AdjustButton({
   factionId,
@@ -73,6 +78,7 @@ function StatsSection({
         <ul className="mt-4 flex flex-col divide-y divide-bronze/20">
           {rows.map((r) => {
             const faction = factions.get(r.faction_id);
+            const rank = getRank(r.level, faction?.grand_alliance ?? "Order");
             return (
               <li
                 key={r.faction_id}
@@ -104,8 +110,21 @@ function StatsSection({
                     delta={-1}
                     label={`Lower ${faction?.name ?? "faction"} proficiency`}
                   />
-                  <span className="flex size-9 items-center justify-center rounded border border-gold/60 font-display text-lg text-gold">
-                    {r.level}
+                  <span className="flex w-24 flex-col items-center text-center">
+                    <span
+                      className="font-display text-sm leading-tight"
+                      style={{
+                        color: rank.color,
+                        textShadow: rank.glow
+                          ? `0 0 8px ${rank.color}`
+                          : undefined,
+                      }}
+                    >
+                      {rank.title}
+                    </span>
+                    <span className="mt-0.5 text-xs text-muted">
+                      Lv {r.level}
+                    </span>
                   </span>
                   <AdjustButton
                     factionId={r.faction_id}
@@ -136,7 +155,7 @@ export default async function ProficiencyPage() {
       .select("*")
       .eq("profile_id", user.id)
       .order("games_played", { ascending: false }),
-    supabase.from("factions").select("id, name, color_hex"),
+    supabase.from("factions").select("id, name, color_hex, grand_alliance"),
   ]);
 
   if (error) {
@@ -144,7 +163,14 @@ export default async function ProficiencyPage() {
   }
 
   const factions = new Map<string, FactionInfo>(
-    (factionRows ?? []).map((f) => [f.id, { name: f.name, color_hex: f.color_hex }])
+    (factionRows ?? []).map((f) => [
+      f.id,
+      {
+        name: f.name,
+        color_hex: f.color_hex,
+        grand_alliance: f.grand_alliance as GrandAlliance,
+      },
+    ])
   );
 
   const rows = (stats ?? []) as StatRow[];
