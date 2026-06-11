@@ -40,6 +40,12 @@ export default async function AppLayout({
             My Games
           </Link>
           <Link
+            href="/proficiency"
+            className="text-muted transition-colors hover:text-gold"
+          >
+            Proficiency
+          </Link>
+          <Link
             href="/games/new"
             className="text-muted transition-colors hover:text-gold"
           >

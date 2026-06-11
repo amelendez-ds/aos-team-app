@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import DeleteGameButton from "@/components/DeleteGameButton";
+import FactionDot from "@/components/FactionDot";
 
 type GameRow = {
   id: string;
@@ -23,16 +24,6 @@ const RESULT_STYLE = {
   loss: "border-loss/60 text-loss",
   draw: "border-gold/60 text-gold",
 } as const;
-
-function FactionDot({ color }: { color: string }) {
-  return (
-    <span
-      aria-hidden
-      className="inline-block size-2.5 rounded-full align-middle"
-      style={{ backgroundColor: color }}
-    />
-  );
-}
 
 export default async function MyGamesPage() {
   const supabase = await createClient();

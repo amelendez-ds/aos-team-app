@@ -60,13 +60,20 @@ export default async function Home() {
           >
             My Games
           </Link>
+          <Link
+            href="/proficiency"
+            className="rounded border border-bronze/60 px-4 py-2 text-center text-text transition-colors hover:border-gold"
+          >
+            Proficiency
+          </Link>
         </div>
       </section>
 
       <section className="rounded-lg border border-bronze/40 bg-surface p-6 shadow-lg sm:p-8">
         <h3 className="text-base tracking-wide text-gold">Coming soon</h3>
         <p className="mt-2 text-sm text-muted">
-          Proficiency tracker, team statistics, and the damage calculator.
+          Team statistics, the captain&apos;s pairing helper, and the damage
+          calculator.
         </p>
       </section>
     </div>
