@@ -111,6 +111,71 @@ const TIERS: Tier[] = [
   },
 ];
 
+export type PlayerFactionStat = {
+  faction_id: string;
+  axis: "playing" | "against";
+  level: number;
+  games_played: number;
+  win_rate: number;
+};
+
+const AXIS_WEIGHT = { playing: 0.6, against: 0.4 } as const;
+
+function statWeight(s: PlayerFactionStat): number {
+  return s.games_played * AXIS_WEIGHT[s.axis];
+}
+
+// Weighted average of all faction levels: playing counts 60%, against 40%,
+// and factions with more games carry proportionally more influence.
+export function calculateOverallLevel(stats: PlayerFactionStat[]): number {
+  let weighted = 0;
+  let total = 0;
+  for (const s of stats) {
+    const w = statWeight(s);
+    weighted += s.level * w;
+    total += w;
+  }
+  return total > 0 ? Math.round(weighted / total) : 0;
+}
+
+// The overall rank title is flavoured by the alliance carrying the most
+// weighted games; ties and empty stats fall back to Order.
+export function getDominantAlliance(
+  stats: PlayerFactionStat[],
+  allianceOf: Map<string, GrandAlliance>
+): GrandAlliance {
+  const weights = new Map<GrandAlliance, number>();
+  for (const s of stats) {
+    const alliance = allianceOf.get(s.faction_id);
+    if (!alliance) continue;
+    weights.set(alliance, (weights.get(alliance) ?? 0) + statWeight(s));
+  }
+  let best: GrandAlliance = "Order";
+  let bestWeight = 0;
+  for (const alliance of ALLIANCES) {
+    const w = weights.get(alliance) ?? 0;
+    if (w > bestWeight) {
+      best = alliance;
+      bestWeight = w;
+    }
+  }
+  return best;
+}
+
+// Main army = the played faction with the most games; ties break on win rate.
+export function pickMainArmy(
+  stats: PlayerFactionStat[]
+): PlayerFactionStat | null {
+  const playing = stats.filter((s) => s.axis === "playing");
+  if (playing.length === 0) return null;
+  return playing.reduce((best, s) =>
+    s.games_played > best.games_played ||
+    (s.games_played === best.games_played && s.win_rate > best.win_rate)
+      ? s
+      : best
+  );
+}
+
 export function getRank(level: number, alliance: GrandAlliance): Rank {
   const clamped = Math.max(0, Math.floor(level));
   let tier = TIERS[0];

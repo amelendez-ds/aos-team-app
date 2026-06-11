@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ALLIANCES, getRank } from "@/lib/ranks";
+import FactionDot from "@/components/FactionDot";
+import {
+  ALLIANCES,
+  calculateOverallLevel,
+  getDominantAlliance,
+  getRank,
+  pickMainArmy,
+  type GrandAlliance,
+} from "@/lib/ranks";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -26,21 +34,47 @@ export default async function Home() {
         .eq("owner_id", user.id),
       supabase
         .from("player_faction_stats")
-        .select("faction_id, level")
+        .select("faction_id, axis, level, games_played, win_rate")
         .eq("profile_id", user.id),
-      supabase.from("factions").select("id, grand_alliance"),
+      supabase.from("factions").select("id, name, color_hex, grand_alliance"),
     ]);
 
-  const allianceOf = new Map(
-    (factionRows ?? []).map((f) => [f.id, f.grand_alliance])
+  const factionById = new Map(
+    (factionRows ?? []).map((f) => [
+      f.id,
+      {
+        name: f.name as string,
+        color_hex: f.color_hex as string,
+        grand_alliance: f.grand_alliance as GrandAlliance,
+      },
+    ])
   );
+  const allianceOf = new Map<string, GrandAlliance>(
+    [...factionById].map(([id, f]) => [id, f.grand_alliance])
+  );
+
+  const rows = stats ?? [];
   const peak = new Map(ALLIANCES.map((a) => [a, 0]));
-  for (const s of stats ?? []) {
+  for (const s of rows) {
     const alliance = allianceOf.get(s.faction_id);
     if (alliance && s.level > (peak.get(alliance) ?? 0)) {
       peak.set(alliance, s.level);
     }
   }
+
+  const overallLevel = calculateOverallLevel(rows);
+  const overallRank = getRank(
+    overallLevel,
+    getDominantAlliance(rows, allianceOf)
+  );
+  const mainArmy = pickMainArmy(rows);
+  const mainArmyFaction = mainArmy
+    ? factionById.get(mainArmy.faction_id)
+    : undefined;
+  const mainArmyRank =
+    mainArmy && mainArmyFaction
+      ? getRank(mainArmy.level, mainArmyFaction.grand_alliance)
+      : undefined;
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,12 +84,54 @@ export default async function Home() {
       />
 
       <section className="rounded-lg border border-bronze/40 bg-surface p-6 shadow-lg sm:p-8">
-        <h2 className="text-lg tracking-wide text-gold">
+        <div className="flex flex-col items-center">
+          <div
+            className="flex size-32 flex-col items-center justify-center rounded-full border-2 bg-bg p-2"
+            style={{ borderColor: overallRank.color }}
+          >
+            <div className="flex size-full flex-col items-center justify-center rounded-full border border-bronze/40 px-2 text-center">
+              <span
+                className="font-display text-sm leading-tight"
+                style={{
+                  color: overallRank.color,
+                  textShadow: overallRank.glow
+                    ? `0 0 8px ${overallRank.color}`
+                    : undefined,
+                }}
+              >
+                {overallRank.title}
+              </span>
+              <span className="mt-0.5 text-xs text-muted">
+                Lv {overallLevel}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <h2 className="mt-4 text-center text-lg tracking-wide text-gold">
           Well met, {profile?.display_name ?? "warrior"}
         </h2>
-        <p className="mt-1 text-sm text-muted capitalize">
+        <p className="mt-1 text-center text-sm text-muted capitalize">
           Rank: {profile?.role ?? "player"}
         </p>
+        {mainArmy && mainArmyFaction && mainArmyRank && (
+          <p className="mt-2 text-center text-sm text-text">
+            <span className="text-muted">Main Army:</span>{" "}
+            <FactionDot color={mainArmyFaction.color_hex} />{" "}
+            {mainArmyFaction.name}{" "}
+            <span
+              className="font-display"
+              style={{
+                color: mainArmyRank.color,
+                textShadow: mainArmyRank.glow
+                  ? `0 0 8px ${mainArmyRank.color}`
+                  : undefined,
+              }}
+            >
+              · {mainArmyRank.title}
+            </span>
+          </p>
+        )}
 
         <h3 className="mt-5 text-sm tracking-wide text-gold">
           Alliance Badges

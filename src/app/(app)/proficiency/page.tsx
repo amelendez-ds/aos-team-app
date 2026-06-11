@@ -3,7 +3,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { adjustProficiency } from "@/app/proficiency/actions";
 import FactionDot from "@/components/FactionDot";
-import { getRank, type GrandAlliance } from "@/lib/ranks";
+import {
+  calculateOverallLevel,
+  getDominantAlliance,
+  getRank,
+  type GrandAlliance,
+} from "@/lib/ranks";
 
 type StatRow = {
   profile_id: string;
@@ -177,9 +182,39 @@ export default async function ProficiencyPage() {
   const playing = rows.filter((r) => r.axis === "playing");
   const against = rows.filter((r) => r.axis === "against");
 
+  const allianceOf = new Map<string, GrandAlliance>(
+    [...factions].map(([id, f]) => [id, f.grand_alliance])
+  );
+  const overallLevel = calculateOverallLevel(rows);
+  const overallRank = getRank(
+    overallLevel,
+    getDominantAlliance(rows, allianceOf)
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-xl tracking-wide text-gold">My Proficiency</h2>
+
+      <section className="rounded-lg border border-bronze/40 bg-surface p-6 text-center shadow-lg">
+        <h3 className="text-sm tracking-widest text-muted uppercase">
+          Overall Mastery
+        </h3>
+        <p
+          className="mt-2 font-display text-2xl leading-tight"
+          style={{
+            color: overallRank.color,
+            textShadow: overallRank.glow
+              ? `0 0 8px ${overallRank.color}`
+              : undefined,
+          }}
+        >
+          {overallRank.title}
+        </p>
+        <p className="mt-1 text-sm text-muted">Level {overallLevel}</p>
+        <p className="mt-2 text-xs text-muted">
+          Weighted across all factions and matchups
+        </p>
+      </section>
 
       <StatsSection
         title="Mastery of My Armies"
