@@ -202,9 +202,9 @@ Editable reference data — update as GW revises the roster.
 
 **Death (4):** Flesh-eater Courts, Nighthaunt, Ossiarch Bonereapers, Soulblight Gravelords.
 
-**Destruction (4):** Gloomspite Gitz, Ogor Mawtribes, Orruk Warclans, Sons of Behemat.
+**Destruction (5):** Gloomspite Gitz, Ironjawz, Kruleboyz, Ogor Mawtribes, Sons of Behemat.
 
-*(Beasts of Chaos and Bonesplitterz were moved to Legends/sunset June 2025 and are excluded from active play.)*
+*(Beasts of Chaos and Bonesplitterz were moved to Legends/sunset June 2025 and are excluded from active play. Orruk Warclans is the shared battletome name, not a playable 4e faction — its seed row was set inactive in June 2026 when Ironjawz and Kruleboyz were added; it remains for historical games.)*
 
 ---
 
