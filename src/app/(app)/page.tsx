@@ -7,7 +7,7 @@ import {
   calculateOverallLevel,
   getDominantAlliance,
   getRank,
-  pickMainArmy,
+  pickStrongestArmy,
   type GrandAlliance,
 } from "@/lib/ranks";
 
@@ -25,7 +25,7 @@ export default async function Home() {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("display_name, role")
+        .select("display_name, role, primary_faction_id")
         .eq("id", user.id)
         .single(),
       supabase
@@ -68,13 +68,29 @@ export default async function Home() {
     overallLevel,
     getDominantAlliance(rows, allianceOf)
   );
-  const mainArmy = pickMainArmy(rows);
-  const mainArmyFaction = mainArmy
-    ? factionById.get(mainArmy.faction_id)
+  // Main army: the player's own pick (settings). Rank shown is their level
+  // with that faction, Untested if they have not logged games with it yet.
+  const mainArmyFaction = profile?.primary_faction_id
+    ? factionById.get(profile.primary_faction_id)
     : undefined;
-  const mainArmyRank =
-    mainArmy && mainArmyFaction
-      ? getRank(mainArmy.level, mainArmyFaction.grand_alliance)
+  const mainArmyLevel = profile?.primary_faction_id
+    ? (rows.find(
+        (s) =>
+          s.axis === "playing" && s.faction_id === profile.primary_faction_id
+      )?.level ?? 0)
+    : 0;
+  const mainArmyRank = mainArmyFaction
+    ? getRank(mainArmyLevel, mainArmyFaction.grand_alliance)
+    : undefined;
+
+  // Strongest army: earned from logged games, no opinion involved.
+  const strongest = pickStrongestArmy(rows);
+  const strongestFaction = strongest
+    ? factionById.get(strongest.faction_id)
+    : undefined;
+  const strongestRank =
+    strongest && strongestFaction
+      ? getRank(strongest.level, strongestFaction.grand_alliance)
       : undefined;
 
   return (
@@ -115,7 +131,7 @@ export default async function Home() {
         <p className="mt-1 text-center text-sm text-muted capitalize">
           Rank: {profile?.role ?? "player"}
         </p>
-        {mainArmy && mainArmyFaction && mainArmyRank && (
+        {mainArmyFaction && mainArmyRank ? (
           <p className="mt-2 text-center text-sm text-text">
             <span className="text-muted">Main Army:</span>{" "}
             <FactionDot color={mainArmyFaction.color_hex} />{" "}
@@ -131,6 +147,35 @@ export default async function Home() {
             >
               · {mainArmyRank.title}
             </span>
+          </p>
+        ) : (
+          <p className="mt-2 text-center text-sm text-muted">
+            Main Army:{" "}
+            <Link
+              href="/settings"
+              className="text-gold underline-offset-2 hover:underline"
+            >
+              choose yours in Settings
+            </Link>
+          </p>
+        )}
+        {strongest && strongestFaction && strongestRank && (
+          <p className="mt-1 text-center text-sm text-text">
+            <span className="text-muted">Strongest Army:</span>{" "}
+            <FactionDot color={strongestFaction.color_hex} />{" "}
+            {strongestFaction.name}{" "}
+            <span
+              className="font-display"
+              style={{
+                color: strongestRank.color,
+                textShadow: strongestRank.glow
+                  ? `0 0 8px ${strongestRank.color}`
+                  : undefined,
+              }}
+            >
+              · {strongestRank.title}
+            </span>{" "}
+            <span className="text-muted">Lv {strongest.level}</span>
           </p>
         )}
 

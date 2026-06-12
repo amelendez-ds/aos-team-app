@@ -57,7 +57,7 @@ export default async function SettingsPage({
           </label>
 
           <label className="flex flex-col gap-1 text-sm text-muted">
-            Primary faction <span className="text-xs">(optional)</span>
+            Main army <span className="text-xs">(shown on your profile)</span>
             <select
               name="primary_faction_id"
               defaultValue={profile?.primary_faction_id ?? ""}

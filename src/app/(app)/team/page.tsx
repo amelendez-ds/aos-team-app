@@ -5,7 +5,7 @@ import {
   calculateOverallLevel,
   getDominantAlliance,
   getRank,
-  pickMainArmy,
+  pickStrongestArmy,
   type GrandAlliance,
   type PlayerFactionStat,
 } from "@/lib/ranks";
@@ -62,7 +62,10 @@ export default async function TeamPage() {
   ] = await Promise.all([
     supabase.from("team_player_faction_stats").select("*"),
     supabase.from("factions").select("id, name, color_hex, grand_alliance"),
-    supabase.from("profiles").select("id, display_name").order("display_name"),
+    supabase
+      .from("profiles")
+      .select("id, display_name, primary_faction_id")
+      .order("display_name"),
     supabase
       .from("events")
       .select("id, name, start_date, location")
@@ -211,21 +214,11 @@ export default async function TeamPage() {
               overallLevel,
               getDominantAlliance(rows, allianceOf)
             );
-            const mainArmy = pickMainArmy(rows);
-            const mainArmyFaction = mainArmy
-              ? factions.get(mainArmy.faction_id)
+            // Main army is the player's own pick; strongest is earned.
+            const mainArmyFaction = p.primary_faction_id
+              ? factions.get(p.primary_faction_id)
               : undefined;
-            const strongest = rows
-              .filter((s) => s.axis === "playing")
-              .reduce<TeamStatRow | null>(
-                (best, s) =>
-                  !best ||
-                  s.level > best.level ||
-                  (s.level === best.level && s.games_played > best.games_played)
-                    ? s
-                    : best,
-                null
-              );
+            const strongest = pickStrongestArmy(rows);
             const strongestFaction = strongest
               ? factions.get(strongest.faction_id)
               : undefined;

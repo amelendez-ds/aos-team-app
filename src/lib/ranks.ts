@@ -162,15 +162,17 @@ export function getDominantAlliance(
   return best;
 }
 
-// Main army = the played faction with the most games; ties break on win rate.
-export function pickMainArmy(
+// Strongest army = the played faction with the highest proficiency level
+// from logged games; ties favour more games played. Distinct from the main
+// army, which the player chooses themselves (profiles.primary_faction_id).
+export function pickStrongestArmy(
   stats: PlayerFactionStat[]
 ): PlayerFactionStat | null {
   const playing = stats.filter((s) => s.axis === "playing");
   if (playing.length === 0) return null;
   return playing.reduce((best, s) =>
-    s.games_played > best.games_played ||
-    (s.games_played === best.games_played && s.win_rate > best.win_rate)
+    s.level > best.level ||
+    (s.level === best.level && s.games_played > best.games_played)
       ? s
       : best
   );
