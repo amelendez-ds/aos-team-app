@@ -154,6 +154,8 @@ export default async function ProficiencyPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // The view returns one row per player; captains/admins can see other
+  // players' rows, so the profile_id filter here is required, not cosmetic.
   const [{ data: stats, error }, { data: factionRows }] = await Promise.all([
     supabase
       .from("player_faction_stats")

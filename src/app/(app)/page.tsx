@@ -35,6 +35,7 @@ export default async function Home() {
       supabase
         .from("player_faction_stats")
         .select("faction_id, axis, level, games_played, win_rate")
+        // Required filter: captains/admins can see other players' rows.
         .eq("profile_id", user.id),
       supabase.from("factions").select("id, name, color_hex, grand_alliance"),
     ]);

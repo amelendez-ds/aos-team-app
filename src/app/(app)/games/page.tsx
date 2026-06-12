@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import DeleteGameButton from "@/components/DeleteGameButton";
 import FactionDot from "@/components/FactionDot";
@@ -27,8 +28,13 @@ const RESULT_STYLE = {
 
 export default async function MyGamesPage() {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  // RLS scopes the rows to the signed-in player.
+  // Always the viewer's own games — captains/admins can read other rows via
+  // RLS, so this page must filter explicitly rather than rely on RLS.
   const { data, error } = await supabase
     .from("games")
     .select(
@@ -38,6 +44,7 @@ export default async function MyGamesPage() {
        opponent_faction:factions!games_opponent_faction_id_fkey(name, color_hex),
        event:events(name)`
     )
+    .eq("owner_id", user.id)
     .order("played_on", { ascending: false })
     .order("created_at", { ascending: false });
 
