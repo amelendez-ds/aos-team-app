@@ -71,6 +71,12 @@ export default async function AppLayout({
             Team
           </Link>
           <Link
+            href="/events"
+            className="text-muted transition-colors hover:text-gold"
+          >
+            Events
+          </Link>
+          <Link
             href="/games/new"
             className="text-muted transition-colors hover:text-gold"
           >
