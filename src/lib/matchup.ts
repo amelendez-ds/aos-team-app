@@ -24,6 +24,24 @@ export function matchupTier(cell: MatchupCell | undefined): MatchupTier {
   return "weak";
 }
 
+// War-room suggestion score: proficiency and preference weighted equally.
+// A missing preference contributes 0 (the player gave no signal).
+export function combinedScore(
+  cell: MatchupCell | undefined,
+  prefRank: number | undefined
+): number {
+  const level = cell?.level ?? 0;
+  return level + (prefRank ? 7 - prefRank : 0);
+}
+
+// Tier for preference-only colouring: 1–2 wanted, 3–4 indifferent, 5–6 avoid.
+export function prefTier(prefRank: number | undefined): MatchupTier {
+  if (!prefRank) return "unknown";
+  if (prefRank <= 2) return "strong";
+  if (prefRank <= 4) return "fair";
+  return "weak";
+}
+
 // Backgrounds for matrix/grid cells, readable on the dark surface.
 export const TIER_CELL_CLASS: Record<MatchupTier, string> = {
   strong: "bg-win/25 text-win",
