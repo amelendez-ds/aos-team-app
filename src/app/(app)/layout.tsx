@@ -120,7 +120,13 @@ export default async function AppLayout({
 
       <footer className="px-4 py-4 text-center text-xs text-muted">
         Private team tool. No Games Workshop assets; all trademarks belong to
-        their owners.
+        their owners. ·{" "}
+        <Link
+          href="/help"
+          className="underline-offset-2 transition-colors hover:text-gold hover:underline"
+        >
+          Help
+        </Link>
       </footer>
     </div>
   );
