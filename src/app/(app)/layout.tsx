@@ -45,6 +45,13 @@ export default async function AppLayout({
             </h1>
           </Link>
           <div className="flex items-center gap-3">
+            <Link
+              href="/help"
+              title="How the app works"
+              className="text-sm text-muted underline-offset-2 transition-colors hover:text-gold hover:underline"
+            >
+              Help
+            </Link>
             {displayName && (
               <Link
                 href="/settings"
@@ -120,13 +127,7 @@ export default async function AppLayout({
 
       <footer className="px-4 py-4 text-center text-xs text-muted">
         Private team tool. No Games Workshop assets; all trademarks belong to
-        their owners. ·{" "}
-        <Link
-          href="/help"
-          className="underline-offset-2 transition-colors hover:text-gold hover:underline"
-        >
-          Help
-        </Link>
+        their owners.
       </footer>
     </div>
   );
