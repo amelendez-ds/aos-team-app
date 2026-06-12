@@ -47,7 +47,11 @@ export default async function CaptainPage({
       .from("events")
       .select("id, name, start_date, end_date, location, format")
       .order("start_date", { ascending: false, nullsFirst: false }),
-    supabase.from("profiles").select("id, display_name").order("display_name"),
+    supabase
+      .from("profiles")
+      .select("id, display_name")
+      .eq("status", "active")
+      .order("display_name"),
     supabase
       .from("factions")
       .select("id, name, color_hex, grand_alliance")

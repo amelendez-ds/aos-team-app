@@ -42,7 +42,11 @@ export default async function EditEventPage({
       .select("id, team_name, faction_ids")
       .eq("event_id", id)
       .order("sort_order"),
-    supabase.from("profiles").select("id, display_name").order("display_name"),
+    supabase
+      .from("profiles")
+      .select("id, display_name")
+      .eq("status", "active")
+      .order("display_name"),
     supabase
       .from("factions")
       .select("id, name, grand_alliance")

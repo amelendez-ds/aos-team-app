@@ -65,6 +65,7 @@ export default async function TeamPage() {
     supabase
       .from("profiles")
       .select("id, display_name, primary_faction_id")
+      .eq("status", "active")
       .order("display_name"),
     supabase
       .from("events")

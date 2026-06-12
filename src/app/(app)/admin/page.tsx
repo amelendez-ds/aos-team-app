@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import ApprovalButtons from "@/components/ApprovalButtons";
 import DeleteGameButton from "@/components/DeleteGameButton";
 import FactionDot from "@/components/FactionDot";
 import RoleSelect from "@/components/RoleSelect";
@@ -53,8 +54,11 @@ export default async function AdminPage({
   const { dir } = await searchParams;
   const ascending = dir === "asc";
 
-  const [{ data: gameRows, error: gamesError }, { data: profileRows }] =
-    await Promise.all([
+  const [
+    { data: gameRows, error: gamesError },
+    { data: profileRows },
+    { data: pendingRows },
+  ] = await Promise.all([
       supabase
         .from("games")
         .select(
@@ -69,7 +73,13 @@ export default async function AdminPage({
       supabase
         .from("profiles")
         .select("id, display_name, role")
+        .eq("status", "active")
         .order("display_name"),
+      supabase
+        .from("profiles")
+        .select("id, display_name, email, created_at")
+        .eq("status", "pending")
+        .order("created_at"),
     ]);
 
   if (gamesError) {
@@ -79,9 +89,50 @@ export default async function AdminPage({
   const games = (gameRows ?? []) as unknown as AdminGameRow[];
   const profiles = (profileRows ?? []) as ProfileRow[];
 
+  const pending = pendingRows ?? [];
+
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-xl tracking-wide text-gold">Admin Panel</h2>
+
+      <section className="rounded-lg border border-bronze/40 bg-surface p-5 shadow-lg sm:p-6">
+        <h3 className="text-base tracking-wide text-gold">
+          Pending Approvals
+          {pending.length > 0 && (
+            <span className="ml-2 rounded-full border border-gold/60 px-2 py-0.5 text-xs text-gold">
+              {pending.length}
+            </span>
+          )}
+        </h3>
+        {pending.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">No pending approvals.</p>
+        ) : (
+          <ul className="mt-4 flex flex-col divide-y divide-bronze/20">
+            {pending.map((p) => (
+              <li
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-3 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-text">{p.display_name}</p>
+                  <p className="truncate text-xs text-muted">
+                    {p.email ?? "no email"} · signed up{" "}
+                    {new Date(p.created_at).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                <ApprovalButtons
+                  profileId={p.id}
+                  displayName={p.display_name}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="rounded-lg border border-bronze/40 bg-surface p-5 shadow-lg sm:p-6">
         <h3 className="text-base tracking-wide text-gold">All Games</h3>
