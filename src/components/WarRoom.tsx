@@ -26,6 +26,11 @@ export type OpponentTeam = {
 
 type FactionInfo = { name: string; color_hex: string };
 
+export type RecordedPairings = Record<
+  string, // opponentId
+  { round: number; rows: { ourPlayerId: string; oppFactionId: string }[] }
+>;
+
 type ViewMode = "combined" | "proficiency" | "preference";
 
 const VIEW_LABELS: { mode: ViewMode; label: string }[] = [
@@ -34,9 +39,6 @@ const VIEW_LABELS: { mode: ViewMode; label: string }[] = [
   { mode: "preference", label: "Preference" },
 ];
 
-const inputClass =
-  "rounded border border-bronze/40 bg-bg px-2 py-1.5 text-sm text-text outline-none focus:border-gold";
-
 export default function WarRoom({
   eventId,
   lineup,
@@ -44,6 +46,7 @@ export default function WarRoom({
   factions,
   cells, // `${playerId}:${factionId}` -> against-axis stats
   prefs, // `${playerId}:${opponentId}:${factionId}` -> rank 1..6
+  recorded, // opponentId -> previously recorded pairings
 }: {
   eventId: string;
   lineup: LineupPlayer[];
@@ -51,12 +54,34 @@ export default function WarRoom({
   factions: Record<string, FactionInfo>;
   cells: Record<string, MatchupCell>;
   prefs: Record<string, number>;
+  recorded: RecordedPairings;
 }) {
+  // Rehydrate saved assignments: map each recorded faction back to a grid
+  // column, skipping columns already used (a team can repeat a faction).
+  function loadRecorded(oppId: string): Record<string, number> {
+    const opp = opponents.find((o) => o.id === oppId);
+    const rows = recorded[oppId]?.rows ?? [];
+    if (!opp) return {};
+    const used = new Set<number>();
+    const next: Record<string, number> = {};
+    for (const r of rows) {
+      const col = opp.factionIds.findIndex(
+        (fid, i) => fid === r.oppFactionId && !used.has(i)
+      );
+      if (col >= 0) {
+        used.add(col);
+        next[r.ourPlayerId] = col;
+      }
+    }
+    return next;
+  }
+
   const [opponentId, setOpponentId] = useState<string>(opponents[0]?.id ?? "");
   const [view, setView] = useState<ViewMode>("combined");
   // playerId -> column index into the opponent's faction list
-  const [assigned, setAssigned] = useState<Record<string, number>>({});
-  const [round, setRound] = useState(1);
+  const [assigned, setAssigned] = useState<Record<string, number>>(() =>
+    loadRecorded(opponents[0]?.id ?? "")
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -64,7 +89,7 @@ export default function WarRoom({
 
   function pickOpponent(id: string) {
     setOpponentId(id);
-    setAssigned({});
+    setAssigned(loadRecorded(id));
     setMessage(null);
   }
 
@@ -115,17 +140,20 @@ export default function WarRoom({
       setMessage("Assign at least one player first.");
       return;
     }
+    const already = recorded[opponent.id];
     if (
       !confirm(
-        `Record ${pairings.length} pairing${pairings.length === 1 ? "" : "s"} vs ${opponent.teamName}, round ${round}? Existing pairings for this round are replaced.`
+        already
+          ? `Replace the recorded pairings vs ${opponent.teamName}?`
+          : `Record ${pairings.length} pairing${pairings.length === 1 ? "" : "s"} vs ${opponent.teamName}?`
       )
     ) {
       return;
     }
     startTransition(async () => {
       try {
-        await savePairings(eventId, round, pairings);
-        setMessage(`Round ${round} vs ${opponent.teamName} recorded.`);
+        await savePairings(eventId, opponent.id, pairings);
+        setMessage(`Pairings vs ${opponent.teamName} recorded.`);
       } catch (e) {
         setMessage(e instanceof Error ? e.message : "Could not record.");
       }
@@ -168,6 +196,11 @@ export default function WarRoom({
             >
               <span className="block font-display tracking-wide">
                 {o.teamName}
+                {recorded[o.id] && (
+                  <span className="ml-1.5 text-xs text-win">
+                    ✓ R{recorded[o.id].round}
+                  </span>
+                )}
               </span>
               <span className="mt-0.5 block">
                 {o.factionIds.map((fid, i) => (
@@ -331,26 +364,18 @@ export default function WarRoom({
               >
                 Clear
               </button>
-              <span className="ml-auto flex items-center gap-2">
-                <label className="flex items-center gap-1 text-sm text-muted">
-                  Round
-                  <input
-                    type="number"
-                    min={1}
-                    value={round}
-                    onChange={(e) => setRound(Number(e.target.value))}
-                    className={`${inputClass} w-16`}
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={record}
-                  disabled={pending}
-                  className="rounded border border-gold/60 bg-gold/10 px-3 py-1.5 font-display text-sm tracking-wide text-gold transition-colors hover:bg-gold hover:text-bg disabled:opacity-50"
-                >
-                  {pending ? "Recording…" : "Record Pairings"}
-                </button>
-              </span>
+              <button
+                type="button"
+                onClick={record}
+                disabled={pending}
+                className="ml-auto rounded border border-gold/60 bg-gold/10 px-3 py-1.5 font-display text-sm tracking-wide text-gold transition-colors hover:bg-gold hover:text-bg disabled:opacity-50"
+              >
+                {pending
+                  ? "Recording…"
+                  : recorded[opponent.id]
+                    ? "Update Pairings"
+                    : "Record Pairings"}
+              </button>
             </div>
             {message && <p className="mt-2 text-sm text-bronze">{message}</p>}
           </>

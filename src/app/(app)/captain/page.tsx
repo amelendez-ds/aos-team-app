@@ -5,6 +5,7 @@ import EventForm from "@/components/EventForm";
 import WarRoom, {
   type LineupPlayer,
   type OpponentTeam,
+  type RecordedPairings,
 } from "@/components/WarRoom";
 import type { MatchupCell } from "@/lib/matchup";
 
@@ -81,25 +82,48 @@ export default async function CaptainPage({
   let opponents: OpponentTeam[] = [];
   let cells: Record<string, MatchupCell> = {};
   let prefs: Record<string, number> = {};
+  const recorded: RecordedPairings = {};
 
   if (selected) {
-    const [{ data: lineupRows }, { data: opponentRows }, { data: prefRows }] =
-      await Promise.all([
-        supabase
-          .from("event_player_factions")
-          .select("profile_id, faction_id")
-          .eq("event_id", selected.id),
-        supabase
-          .from("event_opponents")
-          .select("id, team_name, faction_ids")
-          .eq("event_id", selected.id)
-          .order("sort_order"),
-        // All players' rankings — captain-readable by RLS.
-        supabase
-          .from("event_preferences")
-          .select("profile_id, opponent_id, faction_id, preference_rank")
-          .eq("event_id", selected.id),
-      ]);
+    const [
+      { data: lineupRows },
+      { data: opponentRows },
+      { data: prefRows },
+      { data: recordedRows },
+    ] = await Promise.all([
+      supabase
+        .from("event_player_factions")
+        .select("profile_id, faction_id")
+        .eq("event_id", selected.id),
+      supabase
+        .from("event_opponents")
+        .select("id, team_name, faction_ids")
+        .eq("event_id", selected.id)
+        .order("sort_order"),
+      // All players' rankings — captain-readable by RLS.
+      supabase
+        .from("event_preferences")
+        .select("profile_id, opponent_id, faction_id, preference_rank")
+        .eq("event_id", selected.id),
+      supabase
+        .from("pairings")
+        .select("opponent_id, round, our_player_id, opp_faction_id")
+        .eq("event_id", selected.id)
+        .not("opponent_id", "is", null),
+    ]);
+
+    for (const r of recordedRows ?? []) {
+      const entry = recorded[r.opponent_id as string] ?? {
+        round: r.round as number,
+        rows: [],
+      };
+      entry.round = Math.min(entry.round, r.round as number);
+      entry.rows.push({
+        ourPlayerId: r.our_player_id as string,
+        oppFactionId: r.opp_faction_id as string,
+      });
+      recorded[r.opponent_id as string] = entry;
+    }
 
     const nameOf = new Map(players.map((p) => [p.id, p.display_name]));
     const factionOf = new Map(
@@ -213,6 +237,7 @@ export default async function CaptainPage({
           )}
           cells={cells}
           prefs={prefs}
+          recorded={recorded}
         />
       )}
 

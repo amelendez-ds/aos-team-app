@@ -211,21 +211,39 @@ export type PairingInput = {
 
 export async function savePairings(
   eventId: string,
-  round: number,
+  opponentId: string,
   pairings: PairingInput[]
 ) {
-  if (!eventId) throw new Error("Pick an event before recording");
-  if (!Number.isInteger(round) || round < 1) throw new Error("Invalid round");
+  if (!eventId || !opponentId) {
+    throw new Error("Pick an event and opponent team before recording");
+  }
   if (pairings.length === 0) throw new Error("No pairings to record");
 
   const { supabase } = await requireCaptain();
 
-  // Re-recording a round replaces it.
+  // One battle per opponent team: the round number is the sequence in which
+  // teams get recorded. Re-recording a team replaces its pairings and keeps
+  // its round slot.
+  const { data: existing, error: existingError } = await supabase
+    .from("pairings")
+    .select("round, opponent_id")
+    .eq("event_id", eventId);
+  if (existingError) {
+    throw new Error(`Could not record pairings: ${existingError.message}`);
+  }
+  const ownRounds = (existing ?? [])
+    .filter((r) => r.opponent_id === opponentId)
+    .map((r) => r.round as number);
+  const round =
+    ownRounds.length > 0
+      ? Math.min(...ownRounds)
+      : Math.max(0, ...(existing ?? []).map((r) => r.round as number)) + 1;
+
   const { error: deleteError } = await supabase
     .from("pairings")
     .delete()
     .eq("event_id", eventId)
-    .eq("round", round);
+    .eq("opponent_id", opponentId);
   if (deleteError) {
     throw new Error(`Could not clear old pairings: ${deleteError.message}`);
   }
@@ -233,6 +251,7 @@ export async function savePairings(
   const { error } = await supabase.from("pairings").insert(
     pairings.map((p) => ({
       event_id: eventId,
+      opponent_id: opponentId,
       round,
       our_player_id: p.ourPlayerId,
       opp_faction_id: p.oppFactionId,
