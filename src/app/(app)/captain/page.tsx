@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createEvent } from "@/app/captain/actions";
 import EventForm from "@/components/EventForm";
 import FactionDot from "@/components/FactionDot";
 import PairingHelper from "@/components/PairingHelper";
@@ -240,7 +239,12 @@ export default async function CaptainPage() {
             New Event
           </summary>
           <div className="mt-4">
-            <EventForm action={createEvent} submitLabel="Create Event" />
+            <EventForm
+              eventId={null}
+              factions={factions}
+              players={players}
+              submitLabel="Create Event"
+            />
           </div>
         </details>
       </section>
