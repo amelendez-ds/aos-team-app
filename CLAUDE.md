@@ -83,4 +83,8 @@ Environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KE
 - Don't use browser localStorage/sessionStorage for real data — use Supabase.
 - Don't build multiple phases at once. One module, tested, committed, then next.
 - Don't make uploaded mini photos public.
+- Don't rely on RLS to scope "my data" queries. Captains/admins can read
+  everyone's rows, so any page showing the viewer's own data must filter
+  explicitly (`owner_id`/`profile_id` = current user). RLS is the security
+  floor, not the page filter.
 - When I correct a mistake, add a rule to this file so it doesn't recur.
