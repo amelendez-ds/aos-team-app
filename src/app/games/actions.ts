@@ -71,7 +71,11 @@ export async function createGame(formData: FormData) {
   redirect("/games");
 }
 
-export async function updateGame(id: string, formData: FormData) {
+export async function updateGame(
+  id: string,
+  returnTo: string,
+  formData: FormData
+) {
   const { supabase } = await requireUser();
   const fields = parseGameForm(formData);
 
@@ -80,7 +84,8 @@ export async function updateGame(id: string, formData: FormData) {
   if (error) throw new Error(`Could not update game: ${error.message}`);
 
   revalidatePath("/games");
-  redirect("/games");
+  revalidatePath("/admin");
+  redirect(returnTo === "/admin" ? "/admin" : "/games");
 }
 
 export async function deleteGame(id: string) {
@@ -90,5 +95,6 @@ export async function deleteGame(id: string) {
   if (error) throw new Error(`Could not delete game: ${error.message}`);
 
   revalidatePath("/games");
+  revalidatePath("/admin");
   revalidatePath("/");
 }

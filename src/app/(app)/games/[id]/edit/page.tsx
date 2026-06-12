@@ -5,10 +5,13 @@ import GameForm from "@/components/GameForm";
 
 export default async function EditGamePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ return?: string }>;
 }) {
   const { id } = await params;
+  const { return: returnTo } = await searchParams;
   const supabase = await createClient();
 
   // RLS: players can only fetch their own games here, so a foreign id 404s.
@@ -43,7 +46,7 @@ export default async function EditGamePage({
           factions={factions ?? []}
           events={events ?? []}
           initial={game}
-          action={updateGame.bind(null, game.id)}
+          action={updateGame.bind(null, game.id, returnTo ?? "/games")}
           submitLabel="Save Changes"
         />
       </section>

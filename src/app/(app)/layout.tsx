@@ -7,6 +7,23 @@ export default async function AppLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Hides the link only; /admin itself re-checks the role and RLS guards
+  // the data.
+  let isAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    isAdmin = profile?.role === "admin";
+  }
+
   async function signOut() {
     "use server";
     const supabase = await createClient();
@@ -51,6 +68,14 @@ export default async function AppLayout({
           >
             Log a Game
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="text-muted transition-colors hover:text-gold"
+            >
+              Admin
+            </Link>
+          )}
         </nav>
       </header>
 
