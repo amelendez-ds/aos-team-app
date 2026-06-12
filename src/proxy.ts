@@ -29,14 +29,35 @@ export async function proxy(request: NextRequest) {
   // client creation and this call.
   const { data } = await supabase.auth.getClaims();
 
+  const pathname = request.nextUrl.pathname;
   const isAuthRoute =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/auth");
+    pathname.startsWith("/login") || pathname.startsWith("/auth");
 
   if (!data?.claims && !isAuthRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
+  }
+
+  // Approval wall: pending accounts only ever see /pending. One small query
+  // per request — fine at team scale.
+  if (data?.claims && !isAuthRoute) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("status")
+      .eq("id", data.claims.sub)
+      .maybeSingle();
+    const isPendingRoute = pathname.startsWith("/pending");
+    if (profile?.status === "pending" && !isPendingRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/pending";
+      return NextResponse.redirect(url);
+    }
+    if (profile?.status !== "pending" && isPendingRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;
