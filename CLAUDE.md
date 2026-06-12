@@ -64,6 +64,12 @@ Central table is `games` (carries `owner_id`). Proficiency = auto-derived game
 counts (a SQL view) + manual `manual_delta` adjustments. Don't duplicate the schema
 here — read the spec.
 
+## Domain: team events
+At a team event we play ONE battle against each opposing team. There are no
+repeat rounds vs the same team; the round sequence emerges from results.
+Pairings are therefore keyed by (event, opponent team) — never ask the
+captain for a round number; derive it from recording order.
+
 ## Commands
 - `npm run dev` — local dev server (test every module here before committing)
 - `npm run build` — production build (must pass before deploy)
