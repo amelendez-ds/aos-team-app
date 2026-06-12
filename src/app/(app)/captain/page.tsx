@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createEvent } from "@/app/captain/actions";
 import EventForm from "@/components/EventForm";
 import FactionDot from "@/components/FactionDot";
+import PairingHelper from "@/components/PairingHelper";
 import { matchupTier, TIER_CELL_CLASS, type MatchupCell } from "@/lib/matchup";
 
 type StatRow = {
@@ -87,6 +88,14 @@ export default async function CaptainPage() {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-xl tracking-wide text-gold">Captain&apos;s Panel</h2>
+
+      {/* ------------------------------------------------ Pairing helper */}
+      <PairingHelper
+        players={players}
+        factions={factions}
+        cells={Object.fromEntries(cellByKey)}
+        events={events.map((e) => ({ id: e.id as string, name: e.name as string }))}
+      />
 
       {/* ------------------------------------------- Proficiency matrix */}
       <section className="rounded-lg border border-bronze/40 bg-surface p-5 shadow-lg sm:p-6">
