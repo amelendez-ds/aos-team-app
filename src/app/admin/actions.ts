@@ -59,6 +59,23 @@ export async function approveUser(profileId: string) {
   revalidatePath("/admin");
 }
 
+export async function deleteUser(profileId: string) {
+  const { supabase, user } = await requireAdmin();
+  if (profileId === user.id) {
+    throw new Error("Admins cannot delete their own account");
+  }
+
+  // SECURITY DEFINER function: re-checks admin, blocks self-deletion,
+  // cleans non-cascading references, and removes the auth user.
+  const { error } = await supabase.rpc("admin_delete_user", {
+    uid: profileId,
+  });
+  if (error) throw new Error(`Could not delete member: ${error.message}`);
+
+  // Their games and stats vanish from every page.
+  revalidatePath("/", "layout");
+}
+
 export async function rejectUser(profileId: string) {
   const { supabase } = await requireAdmin();
 

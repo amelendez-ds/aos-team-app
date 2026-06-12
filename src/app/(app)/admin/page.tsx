@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ApprovalButtons from "@/components/ApprovalButtons";
 import DeleteGameButton from "@/components/DeleteGameButton";
+import DeletePlayerButton from "@/components/DeletePlayerButton";
 import FactionDot from "@/components/FactionDot";
 import RoleSelect from "@/components/RoleSelect";
 import type { Role } from "@/app/admin/actions";
@@ -240,12 +241,18 @@ export default async function AdminPage({
               {p.id === user.id ? (
                 <span className="text-sm text-muted capitalize">{p.role}</span>
               ) : (
-                <RoleSelect
-                  key={`${p.id}-${p.role}`}
-                  profileId={p.id}
-                  displayName={p.display_name}
-                  role={p.role}
-                />
+                <span className="flex shrink-0 items-center gap-2">
+                  <RoleSelect
+                    key={`${p.id}-${p.role}`}
+                    profileId={p.id}
+                    displayName={p.display_name}
+                    role={p.role}
+                  />
+                  <DeletePlayerButton
+                    profileId={p.id}
+                    displayName={p.display_name}
+                  />
+                </span>
               )}
             </li>
           ))}
