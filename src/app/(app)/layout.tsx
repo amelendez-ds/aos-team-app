@@ -12,17 +12,19 @@ export default async function AppLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Hides the link only; /admin itself re-checks the role and RLS guards
+  // Hides links only; /captain and /admin re-check the role and RLS guards
   // the data.
-  let isAdmin = false;
+  let role = "player";
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
-    isAdmin = profile?.role === "admin";
+    role = profile?.role ?? "player";
   }
+  const isCaptain = role === "captain" || role === "admin";
+  const isAdmin = role === "admin";
 
   async function signOut() {
     "use server";
@@ -46,7 +48,7 @@ export default async function AppLayout({
             </button>
           </form>
         </div>
-        <nav className="mx-auto mt-2 flex max-w-3xl gap-4 text-sm">
+        <nav className="mx-auto mt-2 flex max-w-3xl flex-wrap gap-x-4 gap-y-1 text-sm">
           <Link href="/" className="text-muted transition-colors hover:text-gold">
             Home
           </Link>
@@ -63,11 +65,25 @@ export default async function AppLayout({
             Proficiency
           </Link>
           <Link
+            href="/team"
+            className="text-muted transition-colors hover:text-gold"
+          >
+            Team
+          </Link>
+          <Link
             href="/games/new"
             className="text-muted transition-colors hover:text-gold"
           >
             Log a Game
           </Link>
+          {isCaptain && (
+            <Link
+              href="/captain"
+              className="text-muted transition-colors hover:text-gold"
+            >
+              Captain
+            </Link>
+          )}
           {isAdmin && (
             <Link
               href="/admin"
