@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import EventForm from "@/components/EventForm";
+import DeleteEventButton from "@/components/DeleteEventButton";
 import WarRoom, {
   type LineupPlayer,
   type OpponentTeam,
@@ -290,6 +291,16 @@ export default async function CaptainPage({
                     >
                       Edit
                     </Link>
+                    <DeleteEventButton
+                      eventId={e.id}
+                      eventName={e.name}
+                      pairingCount={pairingCount}
+                      gameCount={
+                        result
+                          ? result.wins + result.losses + result.draws
+                          : 0
+                      }
+                    />
                   </div>
                 </li>
               );

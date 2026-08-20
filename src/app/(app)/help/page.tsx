@@ -116,6 +116,12 @@ export default function HelpPage() {
           round by round. If you are not the captain, nothing there concerns
           you beyond making sure your games and preferences are up to date.
         </p>
+        <p>
+          Events are created and edited there too, and can be deleted from the
+          same list. Deleting an event also removes its opponent teams, lineup,
+          preference rankings and recorded pairings — games logged against it
+          are kept, but no longer count towards that event.
+        </p>
       </HelpSection>
 
       <p className="text-center text-xs text-muted">

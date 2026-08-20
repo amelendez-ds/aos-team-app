@@ -261,3 +261,17 @@ export async function savePairings(
 
   revalidateEventPages();
 }
+
+export async function deleteEvent(eventId: string) {
+  const { supabase } = await requireCaptain();
+
+  // Opponents, lineup, preferences and pairings cascade away with the event.
+  // Logged games survive: games.event_id is ON DELETE SET NULL.
+  const { error } = await supabase.from("events").delete().eq("id", eventId);
+  if (error) throw new Error(`Could not delete event: ${error.message}`);
+
+  revalidateEventPages();
+  revalidatePath("/games"); // the event column and the logging dropdown
+  revalidatePath("/");
+  redirect("/captain");
+}
