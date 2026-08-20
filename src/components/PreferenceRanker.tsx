@@ -22,6 +22,7 @@ export default function PreferenceRanker({
   const [editing, setEditing] = useState(false);
   const [order, setOrder] = useState<RankedFaction[]>(factions);
   const [message, setMessage] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function move(index: number, delta: -1 | 1) {
@@ -37,16 +38,19 @@ export default function PreferenceRanker({
   function save() {
     setMessage(null);
     startTransition(async () => {
-      try {
-        await savePreferences(
-          eventId,
-          opponentId,
-          order.map((f) => f.id)
-        );
-        setEditing(false);
-      } catch (e) {
-        setMessage(e instanceof Error ? e.message : "Could not save.");
+      const res = await savePreferences(
+        eventId,
+        opponentId,
+        order.map((f) => f.id)
+      );
+      if (res?.error) {
+        setMessage(res.error);
+        return;
       }
+      // The editor closes on success, so the confirmation lives in the
+      // collapsed view where it is actually visible.
+      setJustSaved(true);
+      setEditing(false);
     });
   }
 
@@ -65,11 +69,17 @@ export default function PreferenceRanker({
         ) : (
           <p className="text-sm text-muted">No ranking submitted yet.</p>
         )}
+        {justSaved && (
+          <p aria-live="polite" className="mt-2 text-sm text-win">
+            Ranking saved.
+          </p>
+        )}
         <button
           type="button"
           onClick={() => {
             setOrder(factions);
             setMessage(null);
+            setJustSaved(false);
             setEditing(true);
           }}
           className={`mt-2 rounded border px-3 py-1.5 text-sm transition-colors ${

@@ -6,6 +6,7 @@ import DeleteGameButton from "@/components/DeleteGameButton";
 import DeletePlayerButton from "@/components/DeletePlayerButton";
 import FactionDot from "@/components/FactionDot";
 import RoleSelect from "@/components/RoleSelect";
+import SavedBanner from "@/components/SavedBanner";
 import type { Role } from "@/app/admin/actions";
 
 type AdminGameRow = {
@@ -35,7 +36,7 @@ const RESULT_STYLE = {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ dir?: string }>;
+  searchParams: Promise<{ dir?: string; saved?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -52,7 +53,7 @@ export default async function AdminPage({
     .single();
   if (me?.role !== "admin") redirect("/");
 
-  const { dir } = await searchParams;
+  const { dir, saved } = await searchParams;
   const ascending = dir === "asc";
 
   const [
@@ -94,6 +95,8 @@ export default async function AdminPage({
 
   return (
     <div className="flex flex-col gap-6">
+      {saved && <SavedBanner message="Game saved." />}
+
       <h2 className="text-xl tracking-wide text-gold">Admin Panel</h2>
 
       <section className="rounded-lg border border-bronze/40 bg-surface p-5 shadow-lg sm:p-6">

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { FormState } from "@/lib/actions";
 
 const AXES = ["playing", "against"] as const;
 type Axis = (typeof AXES)[number];
@@ -11,9 +12,9 @@ export async function adjustProficiency(
   factionId: string,
   axis: Axis,
   delta: 1 | -1
-) {
+): Promise<FormState> {
   if (!AXES.includes(axis) || (delta !== 1 && delta !== -1)) {
-    throw new Error("Invalid adjustment");
+    return { error: "Invalid adjustment." };
   }
 
   const supabase = await createClient();
@@ -39,7 +40,8 @@ export async function adjustProficiency(
     },
     { onConflict: "profile_id,faction_id,axis" }
   );
-  if (error) throw new Error(`Could not save adjustment: ${error.message}`);
+  if (error) return { error: `Could not save adjustment: ${error.message}` };
 
   revalidatePath("/proficiency");
+  return {};
 }

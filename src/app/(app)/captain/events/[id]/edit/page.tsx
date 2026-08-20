@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import EventForm from "@/components/EventForm";
+import DeleteEventButton from "@/components/DeleteEventButton";
 
 export default async function EditEventPage({
   params,
@@ -27,6 +28,8 @@ export default async function EditEventPage({
     { data: opponentRows },
     { data: profileRows },
     { data: factionRows },
+    { count: pairingCount },
+    { count: gameCount },
   ] = await Promise.all([
     supabase
       .from("events")
@@ -52,6 +55,15 @@ export default async function EditEventPage({
       .select("id, name, grand_alliance")
       .eq("active", true)
       .order("sort_order"),
+    // Counts only — they feed the delete confirmation.
+    supabase
+      .from("pairings")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", id),
+    supabase
+      .from("games")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", id),
   ]);
 
   if (!event) {
@@ -75,6 +87,26 @@ export default async function EditEventPage({
           initialOpponents={opponentRows ?? []}
           submitLabel="Save Changes"
         />
+      </section>
+
+      <section className="mt-6 rounded-lg border border-loss/40 bg-surface p-6 shadow-lg">
+        <h3 className="font-display text-base tracking-wide text-loss">
+          Delete Event
+        </h3>
+        <p className="mt-1 text-sm text-muted">
+          Removes this event along with its opponent teams, lineup, preference
+          rankings and recorded pairings. Logged games are kept but lose their
+          event tag.
+        </p>
+        <div className="mt-4">
+          <DeleteEventButton
+            eventId={event.id}
+            eventName={event.name}
+            pairingCount={pairingCount ?? 0}
+            gameCount={gameCount ?? 0}
+            variant="button"
+          />
+        </div>
       </section>
     </div>
   );

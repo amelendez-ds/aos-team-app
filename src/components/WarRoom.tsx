@@ -82,7 +82,11 @@ export default function WarRoom({
   const [assigned, setAssigned] = useState<Record<string, number>>(() =>
     loadRecorded(opponents[0]?.id ?? "")
   );
-  const [message, setMessage] = useState<string | null>(null);
+  // kind drives the colour: a problem must not read like a confirmation.
+  const [message, setMessage] = useState<{
+    text: string;
+    kind: "error" | "success";
+  } | null>(null);
   const [pending, startTransition] = useTransition();
 
   const opponent = opponents.find((o) => o.id === opponentId);
@@ -137,7 +141,7 @@ export default function WarRoom({
       oppFactionId: opponent.factionIds[col],
     }));
     if (pairings.length === 0) {
-      setMessage("Assign at least one player first.");
+      setMessage({ text: "Assign at least one player first.", kind: "error" });
       return;
     }
     const already = recorded[opponent.id];
@@ -151,12 +155,12 @@ export default function WarRoom({
       return;
     }
     startTransition(async () => {
-      try {
-        await savePairings(eventId, opponent.id, pairings);
-        setMessage(`Pairings vs ${opponent.teamName} recorded.`);
-      } catch (e) {
-        setMessage(e instanceof Error ? e.message : "Could not record.");
-      }
+      const res = await savePairings(eventId, opponent.id, pairings);
+      setMessage(
+        res?.error
+          ? { text: res.error, kind: "error" }
+          : { text: `Pairings vs ${opponent.teamName} recorded.`, kind: "success" }
+      );
     });
   }
 
@@ -377,7 +381,16 @@ export default function WarRoom({
                     : "Record Pairings"}
               </button>
             </div>
-            {message && <p className="mt-2 text-sm text-bronze">{message}</p>}
+            {message && (
+              <p
+                aria-live="polite"
+                className={`mt-2 text-sm ${
+                  message.kind === "error" ? "text-loss" : "text-win"
+                }`}
+              >
+                {message.text}
+              </p>
+            )}
           </>
         )
       )}

@@ -107,14 +107,11 @@ export default function EventForm({
       })),
     };
 
+    // No try/catch: saveEvent returns validation problems as a value, and on
+    // success signals the redirect by throwing, which must propagate.
     startTransition(async () => {
-      try {
-        await saveEvent(eventId, payload);
-      } catch (err) {
-        // redirect() rejects with a control-flow error we must let through.
-        if (err && typeof err === "object" && "digest" in err) throw err;
-        setMessage(err instanceof Error ? err.message : "Could not save.");
-      }
+      const res = await saveEvent(eventId, payload);
+      if (res?.error) setMessage(res.error);
     });
   }
 

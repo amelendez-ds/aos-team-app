@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { FormState } from "@/lib/actions";
 
 // App-side guard only; events and pairings RLS re-enforce captain/admin.
 async function requireCaptain() {
@@ -53,35 +54,50 @@ function revalidateEventPages() {
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-function cleanBasics(basics: EventBasics): EventBasics {
+// Returns the cleaned basics, or the message to show under the form.
+function cleanBasics(
+  basics: EventBasics
+): { ok: true; value: EventBasics } | { ok: false; error: string } {
   const name = basics.name.trim();
-  if (!name) throw new Error("Event name is required");
-  const date = (v: string | null) => {
-    const raw = (v ?? "").trim();
-    if (raw === "") return null;
-    if (!DATE_RE.test(raw)) throw new Error("Invalid date");
-    return raw;
-  };
+  if (!name) return { ok: false, error: "Event name is required." };
+
   const text = (v: string | null) => {
     const raw = (v ?? "").trim();
     return raw === "" ? null : raw;
   };
+  const dates: Record<string, string | null> = {};
+  for (const [key, raw] of [
+    ["start_date", basics.start_date],
+    ["end_date", basics.end_date],
+  ] as const) {
+    const value = (raw ?? "").trim();
+    if (value !== "" && !DATE_RE.test(value)) {
+      return { ok: false, error: "Enter dates as a valid calendar date." };
+    }
+    dates[key] = value === "" ? null : value;
+  }
+
   return {
-    name,
-    start_date: date(basics.start_date),
-    end_date: date(basics.end_date),
-    location: text(basics.location),
-    format: text(basics.format),
-    notes: text(basics.notes),
+    ok: true,
+    value: {
+      name,
+      start_date: dates.start_date,
+      end_date: dates.end_date,
+      location: text(basics.location),
+      format: text(basics.format),
+      notes: text(basics.notes),
+    },
   };
 }
 
 export async function saveEvent(
   eventId: string | null,
   payload: SaveEventPayload
-) {
+): Promise<FormState> {
   const { supabase, user } = await requireCaptain();
-  const basics = cleanBasics(payload.basics);
+  const cleaned = cleanBasics(payload.basics);
+  if (!cleaned.ok) return { error: cleaned.error };
+  const basics = cleaned.value;
 
   const opponents = payload.opponents
     .map((o) => ({
@@ -91,15 +107,17 @@ export async function saveEvent(
     }))
     .filter((o) => o.teamName !== "" || o.factionIds.length > 0);
   if (opponents.length === 0) {
-    throw new Error("Add at least one opponent team");
+    return { error: "Add at least one opponent team." };
   }
   for (const o of opponents) {
-    if (!o.teamName) throw new Error("Every opponent team needs a name");
+    if (!o.teamName) {
+      return { error: "Every opponent team needs a name." };
+    }
     if (o.factionIds.length === 0) {
-      throw new Error(`Give ${o.teamName} at least one faction`);
+      return { error: `Give ${o.teamName} at least one faction.` };
     }
     if (o.factionIds.length > 6) {
-      throw new Error("An opponent team has at most 6 factions");
+      return { error: `${o.teamName} can have at most 6 factions.` };
     }
   }
 
@@ -114,14 +132,14 @@ export async function saveEvent(
     ...opponents.flatMap((o) => o.factionIds),
     ...lineup.map(([, f]) => f),
   ]) {
-    if (!validFactions.has(id)) throw new Error("Unknown faction");
+    if (!validFactions.has(id)) return { error: "Unknown faction." };
   }
 
   // ---- events row ----
   let id = eventId;
   if (id) {
     const { error } = await supabase.from("events").update(basics).eq("id", id);
-    if (error) throw new Error(`Could not update event: ${error.message}`);
+    if (error) return { error: `Could not update event: ${error.message}` };
   } else {
     const { data, error } = await supabase
       .from("events")
@@ -129,7 +147,7 @@ export async function saveEvent(
       .select("id")
       .single();
     if (error || !data) {
-      throw new Error(`Could not create event: ${error?.message}`);
+      return { error: `Could not create event: ${error?.message}` };
     }
     id = data.id as string;
   }
@@ -144,7 +162,7 @@ export async function saveEvent(
       })),
       { onConflict: "event_id,profile_id" }
     );
-    if (error) throw new Error(`Could not save lineup: ${error.message}`);
+    if (error) return { error: `Could not save lineup: ${error.message}` };
   }
   let removeLineup = supabase
     .from("event_player_factions")
@@ -159,7 +177,7 @@ export async function saveEvent(
   }
   const { error: lineupDeleteError } = await removeLineup;
   if (lineupDeleteError) {
-    throw new Error(`Could not save lineup: ${lineupDeleteError.message}`);
+    return { error: `Could not save lineup: ${lineupDeleteError.message}` };
   }
 
   // ---- opponents: update by id / insert new / delete removed. Never
@@ -177,7 +195,9 @@ export async function saveEvent(
         .from("event_opponents")
         .update(row)
         .eq("id", o.id);
-      if (error) throw new Error(`Could not save opponents: ${error.message}`);
+      if (error) {
+        return { error: `Could not save opponents: ${error.message}` };
+      }
       keptIds.push(o.id);
     } else {
       const { data, error } = await supabase
@@ -186,7 +206,7 @@ export async function saveEvent(
         .select("id")
         .single();
       if (error || !data) {
-        throw new Error(`Could not save opponents: ${error?.message}`);
+        return { error: `Could not save opponents: ${error?.message}` };
       }
       keptIds.push(data.id as string);
     }
@@ -197,11 +217,11 @@ export async function saveEvent(
     .eq("event_id", id)
     .not("id", "in", `(${keptIds.join(",")})`);
   if (oppDeleteError) {
-    throw new Error(`Could not save opponents: ${oppDeleteError.message}`);
+    return { error: `Could not save opponents: ${oppDeleteError.message}` };
   }
 
   revalidateEventPages();
-  redirect("/captain");
+  redirect("/captain?saved=1");
 }
 
 export type PairingInput = {
@@ -213,11 +233,11 @@ export async function savePairings(
   eventId: string,
   opponentId: string,
   pairings: PairingInput[]
-) {
+): Promise<FormState> {
   if (!eventId || !opponentId) {
-    throw new Error("Pick an event and opponent team before recording");
+    return { error: "Pick an event and opponent team before recording." };
   }
-  if (pairings.length === 0) throw new Error("No pairings to record");
+  if (pairings.length === 0) return { error: "No pairings to record." };
 
   const { supabase } = await requireCaptain();
 
@@ -229,7 +249,7 @@ export async function savePairings(
     .select("round, opponent_id")
     .eq("event_id", eventId);
   if (existingError) {
-    throw new Error(`Could not record pairings: ${existingError.message}`);
+    return { error: `Could not record pairings: ${existingError.message}` };
   }
   const ownRounds = (existing ?? [])
     .filter((r) => r.opponent_id === opponentId)
@@ -245,7 +265,7 @@ export async function savePairings(
     .eq("event_id", eventId)
     .eq("opponent_id", opponentId);
   if (deleteError) {
-    throw new Error(`Could not clear old pairings: ${deleteError.message}`);
+    return { error: `Could not clear old pairings: ${deleteError.message}` };
   }
 
   const { error } = await supabase.from("pairings").insert(
@@ -257,7 +277,22 @@ export async function savePairings(
       opp_faction_id: p.oppFactionId,
     }))
   );
-  if (error) throw new Error(`Could not record pairings: ${error.message}`);
+  if (error) return { error: `Could not record pairings: ${error.message}` };
 
   revalidateEventPages();
+  return {};
+}
+
+export async function deleteEvent(eventId: string): Promise<FormState> {
+  const { supabase } = await requireCaptain();
+
+  // Opponents, lineup, preferences and pairings cascade away with the event.
+  // Logged games survive: games.event_id is ON DELETE SET NULL.
+  const { error } = await supabase.from("events").delete().eq("id", eventId);
+  if (error) return { error: `Could not delete event: ${error.message}` };
+
+  revalidateEventPages();
+  revalidatePath("/games"); // the event column and the logging dropdown
+  revalidatePath("/");
+  redirect("/captain");
 }
