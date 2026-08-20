@@ -3,8 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { FormState } from "@/lib/actions";
 
-export async function updateProfile(formData: FormData) {
+export async function updateProfile(
+  _prevState: FormState,
+  formData: FormData
+): Promise<FormState> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -12,8 +16,10 @@ export async function updateProfile(formData: FormData) {
   if (!user) redirect("/login");
 
   const displayName = String(formData.get("display_name") ?? "").trim();
-  if (!displayName) throw new Error("Display name is required");
-  if (displayName.length > 40) throw new Error("Display name is too long");
+  if (!displayName) return { error: "Display name is required." };
+  if (displayName.length > 40) {
+    return { error: "Display name is too long (40 characters max)." };
+  }
 
   const primaryFactionId =
     String(formData.get("primary_faction_id") ?? "") || null;
@@ -24,7 +30,7 @@ export async function updateProfile(formData: FormData) {
     .from("profiles")
     .update({ display_name: displayName, primary_faction_id: primaryFactionId })
     .eq("id", user.id);
-  if (error) throw new Error(`Could not save profile: ${error.message}`);
+  if (error) return { error: `Could not save profile: ${error.message}` };
 
   // Display name appears across the app.
   revalidatePath("/", "layout");

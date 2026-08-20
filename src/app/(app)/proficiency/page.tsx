@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { adjustProficiency } from "@/app/proficiency/actions";
+import AdjustButton from "@/components/AdjustButton";
 import FactionDot from "@/components/FactionDot";
 import {
   calculateOverallLevel,
@@ -29,29 +29,6 @@ type FactionInfo = {
   color_hex: string;
   grand_alliance: GrandAlliance;
 };
-
-function AdjustButton({
-  factionId,
-  axis,
-  delta,
-  label,
-}: {
-  factionId: string;
-  axis: "playing" | "against";
-  delta: 1 | -1;
-  label: string;
-}) {
-  return (
-    <form action={adjustProficiency.bind(null, factionId, axis, delta)}>
-      <button
-        aria-label={label}
-        className="size-7 rounded border border-bronze/60 text-base leading-none text-muted transition-colors hover:border-gold hover:text-gold"
-      >
-        {delta > 0 ? "+" : "−"}
-      </button>
-    </form>
-  );
-}
 
 function StatsSection({
   title,

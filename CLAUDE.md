@@ -93,4 +93,15 @@ Environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KE
   everyone's rows, so any page showing the viewer's own data must filter
   explicitly (`owner_id`/`profile_id` = current user). RLS is the security
   floor, not the page filter.
+- Don't throw from a server action for anything the user can trigger. Expected
+  failures (validation, refused permission) return `{ error }` (`src/lib/actions.ts`)
+  and the form shows them inline. Production replaces thrown messages with an
+  opaque placeholder, so a throw is always a worse error message than a return.
+- Don't detect Next's redirect control-flow error with `"digest" in err`. EVERY
+  server error carries a digest, so that guard re-throws real validation errors
+  into the error screen. Don't try/catch an action body at all — returning
+  errors makes the catch unnecessary.
+- Don't leave a submit control enabled while its action is in flight. Every
+  save/delete button needs `disabled={pending}` (`useActionState` or
+  `useTransition`); on a phone a second tap logs a second row.
 - When I correct a mistake, add a rule to this file so it doesn't recur.

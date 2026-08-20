@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { FormState } from "@/lib/actions";
 
 // Replace the caller's preference ranking for one opponent team.
 // orderedFactionIds[0] = most preferred matchup (rank 1).
@@ -10,7 +11,7 @@ export async function savePreferences(
   eventId: string,
   opponentId: string,
   orderedFactionIds: string[]
-) {
+): Promise<FormState> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -22,7 +23,7 @@ export async function savePreferences(
     orderedFactionIds.length > 6 ||
     new Set(orderedFactionIds).size !== orderedFactionIds.length
   ) {
-    throw new Error("Invalid ranking");
+    return { error: "Invalid ranking." };
   }
 
   // The ranking must cover exactly this opponent's factions.
@@ -32,14 +33,14 @@ export async function savePreferences(
     .eq("id", opponentId)
     .maybeSingle();
   if (!opponent || opponent.event_id !== eventId) {
-    throw new Error("Unknown opponent team");
+    return { error: "Unknown opponent team." };
   }
   const theirs = new Set(opponent.faction_ids as string[]);
   if (
     orderedFactionIds.length !== theirs.size ||
     orderedFactionIds.some((id) => !theirs.has(id))
   ) {
-    throw new Error("Ranking does not match the opponent's factions");
+    return { error: "Ranking does not match the opponent's factions." };
   }
 
   // Own rows only (explicit filter on top of the own-row RLS policy).
@@ -50,7 +51,7 @@ export async function savePreferences(
     .eq("opponent_id", opponentId)
     .eq("profile_id", user.id);
   if (deleteError) {
-    throw new Error(`Could not save ranking: ${deleteError.message}`);
+    return { error: `Could not save ranking: ${deleteError.message}` };
   }
 
   const { error } = await supabase.from("event_preferences").insert(
@@ -62,7 +63,8 @@ export async function savePreferences(
       preference_rank: i + 1,
     }))
   );
-  if (error) throw new Error(`Could not save ranking: ${error.message}`);
+  if (error) return { error: `Could not save ranking: ${error.message}` };
 
   revalidatePath("/events");
+  return {};
 }

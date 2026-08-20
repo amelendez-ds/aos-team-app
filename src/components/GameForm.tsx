@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { NO_ERROR, type FormState } from "@/lib/actions";
 
 type Faction = { id: string; name: string; grand_alliance: string };
 type EventOption = { id: string; name: string };
@@ -72,10 +73,11 @@ export default function GameForm({
   factions: Faction[];
   events: EventOption[];
   initial?: Partial<InitialGame>;
-  action: (formData: FormData) => Promise<void>;
+  action: (state: FormState, formData: FormData) => Promise<FormState>;
   submitLabel: string;
 }) {
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
+  const [state, formAction, pending] = useActionState(action, NO_ERROR);
 
   const resultOptions = [
     { value: "win", label: "Win", checked: "has-checked:border-win has-checked:text-win" },
@@ -84,7 +86,7 @@ export default function GameForm({
   ];
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-4">
       <FactionSelect
         name="player_faction_id"
         label="Your faction"
@@ -207,11 +209,20 @@ export default function GameForm({
         />
       </label>
 
+      {state.error && (
+        <p aria-live="polite" className="text-sm text-loss">
+          {state.error}
+        </p>
+      )}
+
+      {/* Disabled while in flight: a repeated tap on a slow connection used to
+          log the same game several times. */}
       <button
         type="submit"
-        className="mt-2 rounded border border-gold/60 bg-bg px-4 py-2 font-display tracking-wide text-gold transition-colors hover:bg-gold hover:text-bg"
+        disabled={pending}
+        className="mt-2 rounded border border-gold/60 bg-bg px-4 py-2 font-display tracking-wide text-gold transition-colors hover:bg-gold hover:text-bg disabled:opacity-50"
       >
-        {submitLabel}
+        {pending ? "Saving…" : submitLabel}
       </button>
     </form>
   );

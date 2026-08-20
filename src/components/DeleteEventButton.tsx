@@ -1,17 +1,17 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { deleteEvent } from "@/app/captain/actions";
 
 function confirmMessage(
   eventName: string,
   pairingCount: number,
-  gameCount: number
+  gameCount: number,
 ) {
   const lost = ["its opponent teams", "lineup", "player preference rankings"];
   if (pairingCount > 0) {
     lost.push(
-      `${pairingCount} recorded pairing${pairingCount === 1 ? "" : "s"}`
+      `${pairingCount} recorded pairing${pairingCount === 1 ? "" : "s"}`,
     );
   }
   const parts = [
@@ -23,7 +23,7 @@ function confirmMessage(
     parts.push(
       gameCount === 1
         ? "1 logged game stays but loses its event tag."
-        : `${gameCount} logged games stay but lose their event tag.`
+        : `${gameCount} logged games stay but lose their event tag.`,
     );
   }
   parts.push("This cannot be undone.");
@@ -43,24 +43,32 @@ export default function DeleteEventButton({
   gameCount: number;
   variant?: "link" | "button";
 }) {
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   return (
-    <button
-      type="button"
-      disabled={pending}
-      onClick={() => {
-        if (confirm(confirmMessage(eventName, pairingCount, gameCount))) {
-          startTransition(() => deleteEvent(eventId));
+    <span className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          if (confirm(confirmMessage(eventName, pairingCount, gameCount))) {
+            setError(null);
+            startTransition(async () => {
+              const res = await deleteEvent(eventId);
+              if (res?.error) setError(res.error);
+            });
+          }
+        }}
+        className={
+          variant === "button"
+            ? "rounded border border-loss/60 px-3 py-2 text-sm text-loss transition-colors hover:bg-loss hover:text-bg disabled:opacity-50"
+            : "text-sm text-loss underline-offset-2 transition-colors hover:underline disabled:opacity-50"
         }
-      }}
-      className={
-        variant === "button"
-          ? "rounded border border-loss/60 px-3 py-2 text-sm text-loss transition-colors hover:bg-loss hover:text-bg disabled:opacity-50"
-          : "text-sm text-loss underline-offset-2 transition-colors hover:underline disabled:opacity-50"
-      }
-    >
-      Delete
-    </button>
+      >
+        {pending ? "Deleting…" : "Delete"}
+      </button>
+      {error && <p className="text-xs text-loss">{error}</p>}
+    </span>
   );
 }

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import DeleteGameButton from "@/components/DeleteGameButton";
 import FactionDot from "@/components/FactionDot";
+import SavedBanner from "@/components/SavedBanner";
 
 type GameRow = {
   id: string;
@@ -26,7 +27,12 @@ const RESULT_STYLE = {
   draw: "border-gold/60 text-gold",
 } as const;
 
-export default async function MyGamesPage() {
+export default async function MyGamesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  const { saved } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,6 +62,8 @@ export default async function MyGamesPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {saved && <SavedBanner message="Game saved." />}
+
       <div className="flex items-center justify-between">
         <h2 className="text-xl tracking-wide text-gold">My Games</h2>
         <Link

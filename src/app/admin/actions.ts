@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { FormState } from "@/lib/actions";
 
 const ROLES = ["player", "captain", "admin"] as const;
 export type Role = (typeof ROLES)[number];
@@ -27,26 +28,30 @@ async function requireAdmin() {
   return { supabase, user };
 }
 
-export async function updateRole(profileId: string, role: string) {
+export async function updateRole(
+  profileId: string,
+  role: string
+): Promise<FormState> {
   if (!ROLES.includes(role as Role)) {
-    throw new Error("Invalid role");
+    return { error: "Invalid role." };
   }
 
   const { supabase, user } = await requireAdmin();
   if (profileId === user.id) {
-    throw new Error("Admins cannot change their own role");
+    return { error: "Admins cannot change their own role." };
   }
 
   const { error } = await supabase
     .from("profiles")
     .update({ role })
     .eq("id", profileId);
-  if (error) throw new Error(`Could not change role: ${error.message}`);
+  if (error) return { error: `Could not change role: ${error.message}` };
 
   revalidatePath("/admin");
+  return {};
 }
 
-export async function approveUser(profileId: string) {
+export async function approveUser(profileId: string): Promise<FormState> {
   const { supabase } = await requireAdmin();
 
   const { error } = await supabase
@@ -54,15 +59,16 @@ export async function approveUser(profileId: string) {
     .update({ status: "active" })
     .eq("id", profileId)
     .eq("status", "pending");
-  if (error) throw new Error(`Could not approve: ${error.message}`);
+  if (error) return { error: `Could not approve: ${error.message}` };
 
   revalidatePath("/admin");
+  return {};
 }
 
-export async function deleteUser(profileId: string) {
+export async function deleteUser(profileId: string): Promise<FormState> {
   const { supabase, user } = await requireAdmin();
   if (profileId === user.id) {
-    throw new Error("Admins cannot delete their own account");
+    return { error: "Admins cannot delete their own account." };
   }
 
   // SECURITY DEFINER function: re-checks admin, blocks self-deletion,
@@ -70,13 +76,14 @@ export async function deleteUser(profileId: string) {
   const { error } = await supabase.rpc("admin_delete_user", {
     uid: profileId,
   });
-  if (error) throw new Error(`Could not delete member: ${error.message}`);
+  if (error) return { error: `Could not delete member: ${error.message}` };
 
   // Their games and stats vanish from every page.
   revalidatePath("/", "layout");
+  return {};
 }
 
-export async function rejectUser(profileId: string) {
+export async function rejectUser(profileId: string): Promise<FormState> {
   const { supabase } = await requireAdmin();
 
   // SECURITY DEFINER function: re-checks admin, only deletes pending
@@ -84,7 +91,8 @@ export async function rejectUser(profileId: string) {
   const { error } = await supabase.rpc("reject_pending_user", {
     uid: profileId,
   });
-  if (error) throw new Error(`Could not reject: ${error.message}`);
+  if (error) return { error: `Could not reject: ${error.message}` };
 
   revalidatePath("/admin");
+  return {};
 }

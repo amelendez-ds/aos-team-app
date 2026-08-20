@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import EventForm from "@/components/EventForm";
 import DeleteEventButton from "@/components/DeleteEventButton";
+import SavedBanner from "@/components/SavedBanner";
 import WarRoom, {
   type LineupPlayer,
   type OpponentTeam,
@@ -21,7 +22,7 @@ function formatDate(date: string) {
 export default async function CaptainPage({
   searchParams,
 }: {
-  searchParams: Promise<{ event?: string }>;
+  searchParams: Promise<{ event?: string; saved?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -78,7 +79,7 @@ export default async function CaptainPage({
     .sort((a, b) => (a.start_date! > b.start_date! ? -1 : 1));
   const ordered = [...upcoming, ...past];
 
-  const { event: eventParam } = await searchParams;
+  const { event: eventParam, saved } = await searchParams;
   const selected =
     ordered.find((e) => e.id === eventParam) ?? ordered[0] ?? null;
 
@@ -189,6 +190,8 @@ export default async function CaptainPage({
 
   return (
     <div className="flex flex-col gap-6">
+      {saved && <SavedBanner message="Event saved." />}
+
       <h2 className="text-xl tracking-wide text-gold">Captain&apos;s Panel</h2>
 
       {/* ------------------------------------------------ Event selector */}
