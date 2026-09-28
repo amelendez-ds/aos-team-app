@@ -113,4 +113,4 @@ MIT — see [LICENSE](LICENSE).
 
 ## Disclaimer
 
-This is a v
+This is a hobby project for personal use and no commercial purposes. 
