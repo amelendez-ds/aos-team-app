@@ -85,8 +85,10 @@ CLI](https://supabase.com/docs/guides/local-development):
 supabase db push
 ```
 
-Note that the initial migration bootstraps the first admin by matching a
-hardcoded email address — change it to your own before running.
+The migrations bootstrap the first admin by matching a hardcoded email address,
+checked in as the placeholder `admin@example.com` — replace it in both migrations
+that define `handle_new_user()` with your own address before running this, or no
+account will be able to approve the others.
 
 ## Scripts
 

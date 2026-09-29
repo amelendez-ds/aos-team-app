@@ -20,6 +20,11 @@ where u.id = p.id;
 
 -- ---------------------------------------------------------------------------
 -- Signup trigger: store email, gate status (owner email goes straight in).
+--
+-- NOTE: 'admin@example.com' below is a placeholder, standing in for the real
+-- owner address in both branches (role and status). Replace it before applying
+-- this migration to a fresh project, or no account comes up as an active admin
+-- and every signup stays stuck in 'pending'.
 -- ---------------------------------------------------------------------------
 create or replace function private.handle_new_user()
 returns trigger
@@ -35,8 +40,8 @@ begin
       nullif(new.raw_user_meta_data ->> 'full_name', ''),
       split_part(new.email, '@', 1)
     ),
-    case when new.email = 'alvaromegu90@gmail.com' then 'admin' else 'player' end,
-    case when new.email = 'alvaromegu90@gmail.com' then 'active' else 'pending' end,
+    case when new.email = 'admin@example.com' then 'admin' else 'player' end,
+    case when new.email = 'admin@example.com' then 'active' else 'pending' end,
     new.email
   );
   return new;

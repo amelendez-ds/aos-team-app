@@ -140,6 +140,9 @@ grant execute on all functions in schema private to authenticated;
 -- ---------------------------------------------------------------------------
 
 -- Auto-create a profile on signup. The owner's email gets the admin seat.
+-- NOTE: 'admin@example.com' below is a placeholder. Replace it with the real
+-- owner address before applying this migration to a fresh project, or the
+-- project comes up with no admin account.
 create or replace function private.handle_new_user()
 returns trigger
 language plpgsql
@@ -154,7 +157,7 @@ begin
       nullif(new.raw_user_meta_data ->> 'full_name', ''),
       split_part(new.email, '@', 1)
     ),
-    case when new.email = 'alvaromegu90@gmail.com' then 'admin' else 'player' end
+    case when new.email = 'admin@example.com' then 'admin' else 'player' end
   );
   return new;
 end;
